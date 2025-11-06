@@ -27,31 +27,10 @@ stages:
       - job: BuildJob
         displayName: 'Build and Run Tests'
         steps:
-          # Setup Java 21
-          - task: JavaToolInstaller@0
-            displayName: 'Setup Java 21'
-            inputs:
-              versionSpec: '21'
-              jdkArchitectureOption: 'x64'
-              jdkSourceOption: 'PreInstalled'
-
-          # Dar permissão de execução ao gradlew
-          - script: chmod +x gradlew
-            displayName: 'Make gradlew executable'
-
-          # Build e Test com Gradle
-          - task: Gradle@3
+          # Build e Test com Gradle (usando Gradle Wrapper)
+          - powershell: |
+              .\gradlew.bat clean build test --no-daemon
             displayName: 'Gradle Build and Test'
-            inputs:
-              workingDirectory: ''
-              gradleWrapperFile: 'gradlew'
-              gradleOptions: '-Xmx3072m'
-              javaHomeOption: 'JDKVersion'
-              jdkVersionOption: '1.21'
-              jdkArchitectureOption: 'x64'
-              publishJUnitResults: true
-              testResultsFiles: '**/TEST-*.xml'
-              tasks: 'clean build test'
 
           # Publicar resultados dos testes
           - task: PublishTestResults@2

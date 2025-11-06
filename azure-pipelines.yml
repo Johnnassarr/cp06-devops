@@ -2,7 +2,7 @@ trigger:
   - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: 'self-hosted-pooll'  # Usando self-hosted agent
 
 variables:
   # Variáveis do ACR e Docker

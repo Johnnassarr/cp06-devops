@@ -184,4 +184,20 @@ Azure Container Registry
 
 **RM**: 556221  
 **Nome**: João Henrique Dias  
+
+<img width="1857" height="968" alt="image" src="https://github.com/user-attachments/assets/e94c20e5-03cb-45cf-bad0-d9d62a72ea86" />
+
+<img width="1869" height="889" alt="image" src="https://github.com/user-attachments/assets/996dd88f-092e-4593-b9eb-d8e87034faeb" />
+
+<img width="1865" height="589" alt="image" src="https://github.com/user-attachments/assets/b589e074-7919-4573-b524-5948b68922a5" />
+
+<img width="1859" height="876" alt="image" src="https://github.com/user-attachments/assets/b4e9f161-c497-4e36-ab88-2288fce2acfa" />
+
+<img width="1864" height="962" alt="image" src="https://github.com/user-attachments/assets/4c3e9c0f-5aba-448b-b8cf-1a12ce3bba9a" />
+
+<img width="1862" height="887" alt="image" src="https://github.com/user-attachments/assets/8b3d8c49-bd31-4404-ba90-d644b2d63762" />
+
+<img width="1859" height="881" alt="image" src="https://github.com/user-attachments/assets/3101e804-842c-4f3c-9166-411aacbbb2a1" />
+
+
 **Turma**: 2TDSa

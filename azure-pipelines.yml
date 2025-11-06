@@ -1,0 +1,156 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # Variáveis do ACR e Docker
+  dockerRegistryServiceConnection: 'ACRServiceConnection'
+  imageRepository: 'transaction'
+  containerRegistry: '2tds251cp6rm556221.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
+  
+  # Variáveis do Azure WebApp
+  azureSubscription: 'AzureServiceConnection'
+  webAppName: '2tds251cp6rm556221'
+  resourceGroupName: 'rg-cp6-2tds'
+
+stages:
+  # ========================================
+  # STAGE 1: BUILD E TESTES COM GRADLE
+  # ========================================
+  - stage: BuildAndTest
+    displayName: 'Build and Test Application'
+    jobs:
+      - job: BuildJob
+        displayName: 'Build and Run Tests'
+        steps:
+          # Setup Java 21
+          - task: JavaToolInstaller@0
+            displayName: 'Setup Java 21'
+            inputs:
+              versionSpec: '21'
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+
+          # Dar permissão de execução ao gradlew
+          - script: chmod +x gradlew
+            displayName: 'Make gradlew executable'
+
+          # Build e Test com Gradle
+          - task: Gradle@3
+            displayName: 'Gradle Build and Test'
+            inputs:
+              workingDirectory: ''
+              gradleWrapperFile: 'gradlew'
+              gradleOptions: '-Xmx3072m'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.21'
+              jdkArchitectureOption: 'x64'
+              publishJUnitResults: true
+              testResultsFiles: '**/TEST-*.xml'
+              tasks: 'clean build test'
+
+          # Publicar resultados dos testes
+          - task: PublishTestResults@2
+            displayName: 'Publish Test Results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/TEST-*.xml'
+              failTaskOnFailedTests: true
+
+  # ========================================
+  # STAGE 2: BUILD E PUSH DA IMAGEM DOCKER
+  # ========================================
+  - stage: DockerBuildPush
+    displayName: 'Docker Build and Push to ACR'
+    dependsOn: BuildAndTest
+    condition: succeeded()
+    jobs:
+      - job: DockerJob
+        displayName: 'Build and Push Docker Image'
+        steps:
+          # Build e Push da imagem Docker para o ACR
+          - task: Docker@2
+            displayName: 'Build and Push Docker Image'
+            inputs:
+              command: buildAndPush
+              repository: $(imageRepository)
+              dockerfile: $(dockerfilePath)
+              containerRegistry: $(dockerRegistryServiceConnection)
+              tags: |
+                $(tag)
+                latest
+
+          # Exibir informações da imagem
+          - script: |
+              echo "Docker image built and pushed successfully!"
+              echo "Image: $(containerRegistry)/$(imageRepository):$(tag)"
+              echo "Image: $(containerRegistry)/$(imageRepository):latest"
+            displayName: 'Display Image Info'
+
+  # ========================================
+  # STAGE 3: DEPLOY PARA AZURE WEBAPP
+  # ========================================
+  - stage: DeployToWebApp
+    displayName: 'Deploy to Azure WebApp'
+    dependsOn: DockerBuildPush
+    condition: succeeded()
+    jobs:
+      - deployment: DeployWeb
+        displayName: 'Deploy to Azure WebApp'
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Deploy do container para o Azure WebApp
+                - task: AzureWebAppContainer@1
+                  displayName: 'Deploy to Azure Web App for Containers'
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appName: $(webAppName)
+                    containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+
+                # Configurar App Settings (porta da aplicação)
+                - task: AzureAppServiceSettings@1
+                  displayName: 'Configure App Settings'
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appName: $(webAppName)
+                    resourceGroupName: $(resourceGroupName)
+                    appSettings: |
+                      [
+                        {
+                          "name": "WEBSITES_PORT",
+                          "value": "8080",
+                          "slotSetting": false
+                        },
+                        {
+                          "name": "DOCKER_REGISTRY_SERVER_URL",
+                          "value": "https://$(containerRegistry)",
+                          "slotSetting": false
+                        }
+                      ]
+
+                # Restart da aplicação
+                - task: AzureAppServiceManage@0
+                  displayName: 'Restart Azure Web App'
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    Action: 'Restart Azure App Service'
+                    WebAppName: $(webAppName)
+
+                # Exibir URL da aplicação
+                - script: |
+                    echo "================================================"
+                    echo "🎉 Deploy concluído com sucesso!"
+                    echo "================================================"
+                    echo "🌐 URL da aplicação: https://$(webAppName).azurewebsites.net"
+                    echo "📦 Imagem Docker: $(containerRegistry)/$(imageRepository):$(tag)"
+                    echo "================================================"
+                  displayName: 'Display Deployment Info'
+

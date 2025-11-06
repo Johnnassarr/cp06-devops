@@ -12,7 +12,7 @@ description = "Transaction Service"
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+		languageVersion = JavaLanguageVersion.of(17)  // Temporariamente usando Java 17
 	}
 }
 

@@ -28,8 +28,7 @@ stages:
         displayName: 'Build and Run Tests'
         steps:
           # Build e Test com Gradle (usando Gradle Wrapper)
-          - powershell: |
-              .\gradlew.bat clean build test --no-daemon
+          - script: gradlew.bat clean build test --no-daemon
             displayName: 'Gradle Build and Test'
 
           # Publicar resultados dos testes

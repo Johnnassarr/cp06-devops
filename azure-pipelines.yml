@@ -87,57 +87,50 @@ stages:
     dependsOn: DockerBuildPush
     condition: succeeded()
     jobs:
-      - deployment: DeployWeb
-        displayName: 'Deploy to Azure WebApp'
-        environment: 'production'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                # Deploy do container para o Azure WebApp
-                - task: AzureWebAppContainer@1
-                  displayName: 'Deploy to Azure Web App for Containers'
-                  inputs:
-                    azureSubscription: $(azureSubscription)
-                    appName: $(webAppName)
-                    containers: '$(containerRegistry)/$(imageRepository):$(tag)'
-
-                # Configurar App Settings (porta da aplicação)
-                - task: AzureAppServiceSettings@1
-                  displayName: 'Configure App Settings'
-                  inputs:
-                    azureSubscription: $(azureSubscription)
-                    appName: $(webAppName)
-                    resourceGroupName: $(resourceGroupName)
-                    appSettings: |
-                      [
-                        {
-                          "name": "WEBSITES_PORT",
-                          "value": "8080",
-                          "slotSetting": false
-                        },
-                        {
-                          "name": "DOCKER_REGISTRY_SERVER_URL",
-                          "value": "https://$(containerRegistry)",
-                          "slotSetting": false
-                        }
-                      ]
-
-                # Restart da aplicação
-                - task: AzureAppServiceManage@0
-                  displayName: 'Restart Azure Web App'
-                  inputs:
-                    azureSubscription: $(azureSubscription)
-                    Action: 'Restart Azure App Service'
-                    WebAppName: $(webAppName)
-
-                # Exibir URL da aplicação
-                - script: |
-                    echo "================================================"
-                    echo "🎉 Deploy concluído com sucesso!"
-                    echo "================================================"
-                    echo "🌐 URL da aplicação: https://$(webAppName).azurewebsites.net"
-                    echo "📦 Imagem Docker: $(containerRegistry)/$(imageRepository):$(tag)"
-                    echo "================================================"
-                  displayName: 'Display Deployment Info'
+      - job: DeployJob
+        displayName: 'Deploy Docker Container to WebApp'
+        steps:
+          # Login no Azure
+          - task: AzureCLI@2
+            displayName: 'Configure WebApp with Docker Container'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "🔧 Obtendo credenciais do ACR..."
+                ACR_USERNAME=$(az acr credential show --name $(echo $(containerRegistry) | cut -d'.' -f1) --query "username" -o tsv)
+                ACR_PASSWORD=$(az acr credential show --name $(echo $(containerRegistry) | cut -d'.' -f1) --query "passwords[0].value" -o tsv)
+                
+                echo "🐳 Configurando container Docker no WebApp..."
+                az webapp config container set \
+                  --name $(webAppName) \
+                  --resource-group $(resourceGroupName) \
+                  --container-image-name $(containerRegistry)/$(imageRepository):$(tag) \
+                  --container-registry-url https://$(containerRegistry) \
+                  --container-registry-user $ACR_USERNAME \
+                  --container-registry-password $ACR_PASSWORD
+                
+                echo "⚙️ Configurando porta da aplicação..."
+                az webapp config appsettings set \
+                  --name $(webAppName) \
+                  --resource-group $(resourceGroupName) \
+                  --settings WEBSITES_PORT=8080
+                
+                echo "🔄 Reiniciando WebApp..."
+                az webapp restart \
+                  --name $(webAppName) \
+                  --resource-group $(resourceGroupName)
+                
+                echo "✅ Deploy concluído!"
+                echo "================================================"
+                echo "🌐 URL da aplicação: https://$(webAppName).azurewebsites.net"
+                echo "📦 Imagem Docker: $(containerRegistry)/$(imageRepository):$(tag)"
+                echo "================================================"
+                
+                echo "⏳ Aguardando aplicação iniciar (30 segundos)..."
+                sleep 30
+                
+                echo "🧪 Testando endpoint de health..."
+                curl -f https://$(webAppName).azurewebsites.net/actuator/health || echo "⚠️ Aplicação ainda está iniciando..."
 

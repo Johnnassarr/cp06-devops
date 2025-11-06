@@ -27,6 +27,13 @@ stages:
       - job: BuildJob
         displayName: 'Build and Run Tests'
         steps:
+          # Instalar Java 17
+          - script: |
+              sudo apt-get update -qq
+              sudo apt-get install -y openjdk-17-jdk
+              java -version
+            displayName: 'Install Java 17'
+          
           # Build e Test com Gradle (usando Gradle Wrapper)
           - script: |
               chmod +x gradlew

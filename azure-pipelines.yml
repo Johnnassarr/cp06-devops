@@ -6,7 +6,7 @@ pool:
 
 variables:
   # Variáveis do ACR e Docker
-  dockerRegistryServiceConnection: 'ACRServiceConnection'
+  dockerRegistryServiceConnection: '2tds251cp6rm556221'
   imageRepository: 'transaction'
   containerRegistry: '2tds251cp6rm556221.azurecr.io'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'

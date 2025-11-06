@@ -28,7 +28,9 @@ stages:
         displayName: 'Build and Run Tests'
         steps:
           # Build e Test com Gradle (usando Gradle Wrapper)
-          - script: gradlew.bat clean build test --no-daemon
+          - script: |
+              chmod +x gradlew
+              ./gradlew clean build test --no-daemon
             displayName: 'Gradle Build and Test'
 
           # Publicar resultados dos testes
